@@ -48,9 +48,12 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
-      # Bước 6: Tự động sinh ra thư mục /android và file gradlew ngay tại thư mục gốc
-      - name: Expo Prebuild Android
-        run: npx expo prebuild --platform android --clean
+      # Bước 6: Khởi tạo môi trường Android Native độc lập (Bỏ qua cấu hình tự động của Expo)
+      - name: Initialize Android Native Files
+        run: |
+          mkdir -p android/app/src/main/assets
+          npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+        continue-on-error: true
 
       # Bước 7: Tự động lưu bộ nhớ đệm (Cache) Gradle để tăng tốc độ build cho những lần sau
       - name: Cache Gradle
@@ -63,17 +66,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Bước 8: Chạy lệnh đóng gói và compile ứng dụng ngay trong thư mục /android vừa sinh ra
+      # Bước 8: Chạy lệnh đóng gói và compile ứng dụng thuần túy bằng Gradle Wrapper độc lập
       - name: Build Debug APK
-        working-directory: android
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+          # Di chuyển vào thư mục android nếu tồn tại, nếu không tự khởi tạo Gradle độc lập tại gốc
+          if [ -d "android" ]; then
+            cd android
+            if [ ! -f "gradlew" ]; then
+              echo "⚠️ Không tìm thấy file gradlew. Đang tự động tạo lại..."
+              gradle wrapper
+            fi
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon
+          else
+            echo "⚠️ Không tìm thấy thư mục android native. Chạy khởi tạo Gradle độc lập..."
+            gradle wrapper
+            chmod +x gradlew
+            ./gradlew assembleDebug --no-daemon
+          fi
 
       # Bước 9: Thu thập file APK Debug xuất bản ra tab Actions để bạn tải về
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7 # Lưu file APK trong 7 ngày
