@@ -23,19 +23,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24  # Sử dụng Node 24 để không bị lỗi cảnh báo hết hạn (deprecated)
+          node-version: 24  # Cập nhật lên Node 24 để sửa lỗi deprecation của GitHub
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 17  # Phù hợp với đa số các phiên bản Expo SDK hiện tại
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install Node dependencies
-        # Tự động kiểm tra file lock, nếu không có sẽ dùng 'npm install' thay vì 'npm ci' để tránh lỗi sập nguồn
+        # Tự động phát hiện file lock để chọn lệnh cài đặt phù hợp, tránh crash quy trình
         run: |
           if [ -f "package-lock.json" ]; then
             npm ci
@@ -51,7 +51,8 @@ jobs:
 
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        # Thêm cờ --info để in ra đầy đủ chi tiết lỗi nếu dòng build Gradle bị sập
+        run: ./gradlew assembleDebug --no-daemon --stacktrace --info
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
 
