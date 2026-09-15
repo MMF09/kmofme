@@ -1,0 +1,84 @@
+name: Android Debug APK Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch: # Cho phép nhấn nút bấm chạy thủ công trực tiếp trên giao diện Web của GitHub
+
+jobs:
+  build-android-debug:
+    runs-on: ubuntu-latest
+
+    # Ép máy ảo luôn thực thi lệnh bên trong thư mục chứa mã nguồn của bạn
+    defaults:
+      run:
+        working-directory: km-blackbox-android
+
+    steps:
+      # Bước 1: Máy ảo GitHub tự tải mã nguồn từ Repository về
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Bước 2: Tự cấu hình môi trường Node.js (Node 22 LTS)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 
+          cache: 'npm'
+
+      # Bước 3: Tự cấu hình môi trường Java (Zulu JDK 17 chuẩn Android mới)
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' 
+
+      # Bước 4: Tự động quét file lock và cài đặt sạch sẽ thư viện Node Modules
+      - name: Install dependencies
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          elif [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "pnpm-lock.yaml" ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      # Bước 5: Tự khởi tạo file cấu hình Firebase từ GitHub Secret an toàn bảo mật
+      - name: Inject Firebase Configuration
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
+
+      # Bước 6: Lệnh cốt lõi giúp tự động sinh ra thư mục /android và gradlew ngay trên máy ảo GitHub
+      - name: Expo Prebuild Android
+        run: npx expo prebuild --platform android --clean
+
+      # Bước 7: Tự động lưu bộ nhớ đệm (Cache) Gradle để tăng tốc độ build cho những lần sau
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('km-blackbox-android/**/*.gradle*', 'km-blackbox-android/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # Bước 8: Chạy lệnh đóng gói (Compile) toàn bộ mã nguồn TypeScript thành file APK Debug
+      - name: Build Debug APK
+        working-directory: km-blackbox-android/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      # Bước 9: Đóng gói và xuất file APK ra tab "Actions" của GitHub để bạn click download về máy điện thoại
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: km-blackbox-android/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7 # File APK tự động xóa sau 7 ngày để tiết kiệm dung lượng tài khoản Git
