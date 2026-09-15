@@ -31,8 +31,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      # Đã cập nhật lên v4 để hỗ trợ Node 24 đầy đủ, loại bỏ cảnh báo Deprecated
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
@@ -45,7 +46,6 @@ jobs:
             npm install
           fi
 
-      # Tự động tạo thư mục android gốc nếu bạn lỡ dùng .gitignore chặn nó trước đó
       - name: Generate Android project if missing
         run: |
           if [ ! -d "android" ]; then
