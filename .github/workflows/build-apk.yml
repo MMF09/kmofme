@@ -23,8 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 24  # Updated to Node 24 to fix the deprecation error
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -39,7 +38,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install Node dependencies
-        run: npm ci
+        # Uses 'npm i' instead of 'npm ci' if package-lock.json is missing
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Expo prebuild (generate android directory)
         run: npx expo prebuild --platform android --no-install --non-interactive
