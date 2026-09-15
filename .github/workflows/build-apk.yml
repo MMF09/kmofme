@@ -26,6 +26,7 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      # Chuyển Java sang phiên bản 17 (ổn định nhất cho đa số Expo SDK hiện tại)
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -35,31 +36,33 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # Sửa lỗi: Xóa sạch bộ nhớ đệm cục bộ của các gói cài đặt cũ nếu có xung đột
       - name: Install Node dependencies
         run: |
-          if [ -f "package-lock.json" ]; then
-            npm ci
-          else
-            npm install
-          fi
+          npm ci || npm install
 
-      # Ép kiểm tra đồng bộ phiên bản lần cuối trước khi prebuild
-      - name: Verify Expo Package Versions
-        run: npx expo install --check
+      # BẮT BUỘC: Đồng bộ và sửa các phiên bản package Expo bị lệch trước khi prebuild
+      - name: Fix and Verify Expo Package Versions
+        run: |
+          npx expo install --check
+          npx expo install --fix
 
-      # Sinh thư mục android sạch từ phôi dự án gốc
-      - name: Expo Prebuild (Generate Android Folder)
-        run: npx expo prebuild --platform android
+      # Sửa lỗi: Tạo mới thư mục android với cờ --clean để xóa dấu vết cấu hình cũ
+      - name: Expo Prebuild (Clean Generate Android Folder)
+        run: npx expo prebuild --platform android --clean
 
       - name: Make gradlew executable
         working-directory: android
         run: chmod +x gradlew
 
+      # Sửa lỗi: Thêm lệnh loại bỏ cache cục bộ của gradle trước khi biên dịch chính thức
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          ./gradlew clean
+          ./gradlew assembleDebug --no-daemon --stacktrace
         env:
-          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g"
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
 
       - name: Find and output APK path
         id: find_apk
