@@ -1,0 +1,58 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main # Hoặc master tùy thuộc vào nhánh chính của bạn
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Thiết lập biến môi trường toàn cục để tránh lỗi xung đột phiên bản Node
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
+    steps:
+      # Bước 1: Kiểm tra và tải mã nguồn về runner
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Bước 2: Thiết lập môi trường Node.js (phù hợp với dự án React Native / Expo)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # Duy trì bản ổn định cho Expo/React Native hiện tại
+          cache: 'npm'
+
+      # Bước 3: Cài đặt JDK (Bắt buộc phải có để build Android bằng Gradle)
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17' # Phiên bản tiêu chuẩn phù hợp với đa số bản Gradle mới
+
+      # Bước 4: Thiết lập Android SDK một cách chính xác
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Bước 5: Cài đặt các thư viện phụ thuộc (Dependencies)
+      - name: Install dependencies
+        run: npm install
+
+      # Bước 6: Build file APK ứng dụng
+      # Lưu ý: Lệnh dưới đây dành cho dự án React Native/Expo bare, thay đổi nếu bạn dùng EAS Build
+      - name: Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      # Bước 7: Xuất và lưu trữ file APK sau khi build xong lên GitHub
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
