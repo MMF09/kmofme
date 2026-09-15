@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Hộp Đen KM",
+    "slug": "km-blackbox",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "kmblackbox",
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
+    "android": {
+      "package": "com.kmblackbox.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563eb"
+      }
+    },
+    "plugins": ["expo-router"]
+  }
+}
