@@ -1,4 +1,4 @@
-name: Build Android Debug APK (React Native CLI)
+name: Build Android Debug APK (Expo)
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Hạ xuống Node 22 (LTS) để đảm bảo độ tương thích ổn định nhất với React Native
+          node-version: 22
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -50,16 +50,15 @@ jobs:
             npm install
           fi
 
-      # Chỉnh sửa lại bước tạo thư mục android nếu thiếu để tránh lỗi bất đồng bộ cấu hình app
-      - name: Generate Android project if missing
-        run: |
-          if [ ! -d "android" ]; then
-            echo "Thư mục android không tồn tại! Đang tự động generate cấu hình từ dự án gốc..."
-            npx react-native android || echo "::warning::Không thể tự tạo thư mục Android tự động. Hãy đảm bảo bạn đã commit thư mục android lên Git."
-          fi
+      # Lệnh này sẽ tự động đọc cấu hình "com.kmblackbox.app" có sẵn trong app.json của bạn.
+      # Cờ --no-interactive giúp robot tự tạo thư mục android im lặng 100% không bị treo máy.
+      - name: Expo Prebuild (Generate Android Folder)
+        run: npx expo prebuild --platform android --no-install --no-interactive
 
+      # Khi bước trên chạy mượt mà, thư mục android chắc chắn sẽ xuất hiện để phân quyền thành công
       - name: Make gradlew executable
-        run: chmod +x android/gradlew
+        working-directory: android
+        run: chmod +x gradlew
 
       - name: Build Debug APK
         working-directory: android
