@@ -57,9 +57,15 @@ jobs:
       - name: Generate Android project if missing
         run: |
           if [ ! -d "android" ]; then
-            echo "Thư mục android không tồn tại! Tự động tạo khung dự án qua React Native CLI..."
-            npx react-native @react-native-community/cli android
+            echo "Thư mục android không tồn tại! Tự động tạo khung dự án..."
+            # Khởi tạo một dự án tạm thời để lấy thư mục android chuẩn nguyên bản
+            npx react-native init TemporaryApp --template react-native-template-typescript || npx react-native@latest init TemporaryApp --skip-install
+            
+            # Di chuyển thư mục android vào gốc dự án
+            mv TemporaryApp/android ./android
+            rm -rf TemporaryApp
           fi
+
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
