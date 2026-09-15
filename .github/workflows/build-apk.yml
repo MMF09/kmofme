@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22 # Hạ xuống Node 22 (LTS) để đảm bảo độ tương thích ổn định nhất với React Native
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -31,17 +31,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Đã cập nhật lên v4 để hỗ trợ Node 24 đầy đủ, loại bỏ cảnh báo Deprecated
-            # Ép sử dụng bản 12.0 để trùng khớp hoàn toàn với GitHub Runner
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: '12.0'
           accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: false # Tắt log chi tiết giấy phép để tránh làm tràn/kẹt console
-          packages: 'build-tools;34.0.0 platforms;android-34 platform-tools' # Khai báo rõ ràng các gói cần để build
-
-
+          log-accepted-android-sdk-licenses: false 
+          packages: 'build-tools;34.0.0 platforms;android-34 platform-tools' 
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
@@ -54,18 +50,13 @@ jobs:
             npm install
           fi
 
+      # Chỉnh sửa lại bước tạo thư mục android nếu thiếu để tránh lỗi bất đồng bộ cấu hình app
       - name: Generate Android project if missing
         run: |
           if [ ! -d "android" ]; then
-            echo "Thư mục android không tồn tại! Tự động tạo khung dự án..."
-            # Khởi tạo một dự án tạm thời để lấy thư mục android chuẩn nguyên bản
-            npx react-native init TemporaryApp --template react-native-template-typescript || npx react-native@latest init TemporaryApp --skip-install
-            
-            # Di chuyển thư mục android vào gốc dự án
-            mv TemporaryApp/android ./android
-            rm -rf TemporaryApp
+            echo "Thư mục android không tồn tại! Đang tự động generate cấu hình từ dự án gốc..."
+            npx react-native android || echo "::warning::Không thể tự tạo thư mục Android tự động. Hãy đảm bảo bạn đã commit thư mục android lên Git."
           fi
-
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
