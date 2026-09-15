@@ -50,9 +50,13 @@ jobs:
             npm install
           fi
 
-      # ĐÃ KHẮC PHỤC: Bỏ cờ --no-interactive để tránh lỗi cú pháp CLI
+      # BỔ SUNG: Kiểm tra và ép đồng bộ các gói thư viện Expo trên CI trước khi dựng thư mục android
+      - name: Verify Expo Package Versions
+        run: npx expo install --check
+
+      # ĐÃ SỬA: Bỏ hoàn toàn cờ --no-install
       - name: Expo Prebuild (Generate Android Folder)
-        run: npx expo prebuild --platform android --no-install
+        run: npx expo prebuild --platform android
 
       - name: Make gradlew executable
         working-directory: android
@@ -67,10 +71,7 @@ jobs:
       - name: Find and output APK path
         id: find_apk
         run: |
-          APK_PATH=$(find android -name "*.apk" -path "*/debug/*" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            APK_PATH=$(find android -name "*debug*.apk" | head -n 1)
-          fi
+          APK_PATH=$(find android -name "*.apk" | grep -i "debug" | head -n 1)
           if [ -z "$APK_PATH" ]; then
             echo "::error::Không tìm thấy file debug APK sau khi build!"
             exit 1
