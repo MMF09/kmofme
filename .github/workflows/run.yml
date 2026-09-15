@@ -11,11 +11,6 @@ jobs:
   build-android-debug:
     runs-on: ubuntu-latest
 
-    # Ép máy ảo luôn thực thi lệnh bên trong thư mục chứa mã nguồn của bạn
-    defaults:
-      run:
-        working-directory: km-blackbox-android
-
     steps:
       # Bước 1: Máy ảo GitHub tự tải mã nguồn từ Repository về
       - name: Checkout repository
@@ -35,7 +30,7 @@ jobs:
           distribution: 'zulu'
           java-version: '17' 
 
-      # Bước 4: Tự động quét file lock và cài đặt sạch sẽ thư viện Node Modules
+      # Bước 4: Tự động quét file lock và cài đặt thư viện Node Modules tại thư mục gốc
       - name: Install dependencies
         run: |
           if [ -f "yarn.lock" ]; then
@@ -53,7 +48,7 @@ jobs:
         run: |
           echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
-      # Bước 6: Lệnh cốt lõi giúp tự động sinh ra thư mục /android và gradlew ngay trên máy ảo GitHub
+      # Bước 6: Tự động sinh ra thư mục /android và file gradlew ngay tại thư mục gốc
       - name: Expo Prebuild Android
         run: npx expo prebuild --platform android --clean
 
@@ -64,21 +59,21 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('km-blackbox-android/**/*.gradle*', 'km-blackbox-android/**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Bước 8: Chạy lệnh đóng gói (Compile) toàn bộ mã nguồn TypeScript thành file APK Debug
+      # Bước 8: Chạy lệnh đóng gói và compile ứng dụng ngay trong thư mục /android vừa sinh ra
       - name: Build Debug APK
-        working-directory: km-blackbox-android/android
+        working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      # Bước 9: Đóng gói và xuất file APK ra tab "Actions" của GitHub để bạn click download về máy điện thoại
+      # Bước 9: Thu thập file APK Debug xuất bản ra tab Actions để bạn tải về
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: km-blackbox-android/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7 # File APK tự động xóa sau 7 ngày để tiết kiệm dung lượng tài khoản Git
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7 # Lưu file APK trong 7 ngày
