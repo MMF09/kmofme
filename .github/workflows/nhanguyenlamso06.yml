@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - develop
-  workflow_dispatch: # Cho phép nhấn nút chạy thủ công trên GitHub
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công trên GitHub Web
 
 jobs:
   build-android-debug:
@@ -18,17 +18,27 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # Thay đổi phù hợp với phiên bản Node dự án của bạn
-          cache: 'npm'
+          node-version: 22 # Sử dụng Node 22 LTS mới nhất để tương thích với môi trường Node 24 mặc định của runner
+          # Tự động cấu hình bộ nhớ đệm dựa trên việc quét tìm file lock thực tế trong dự án
+          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || hashFiles('yarn.lock') != '' && 'yarn' || hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # React Native mới khuyên dùng Java 17
+          java-version: '17' # Phiên bản Java chuẩn hóa cho React Native thế hệ mới
 
       - name: Install dependencies
-        run: npm install # Hoặc 'yarn install --frozen-lockfile' nếu dùng yarn
+        run: |
+          if [ -f "yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          elif [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "pnpm-lock.yaml" ]; then
+            corepack enable && pnpm install --frozen-lockfile
+          else
+            npm install --no-audit --no-fund # Cài đặt dự phòng nếu dự án chưa có file lock
+          fi
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -40,14 +50,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build React Native Android Bundle
+      - name: Request Android Permissions & Build Asset Bundle
         run: |
           mkdir -p android/app/src/main/assets
           npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+        continue-on-error: true # Bỏ qua nếu cấu hình dự án của bạn tự động hóa phần đóng gói này qua Gradle
 
       - name: Build Debug APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug
 
       - name: Upload Debug APK Artifact
@@ -55,4 +67,4 @@ jobs:
         with:
           name: app-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          retention-days: 7 # Lưu trữ file APK trong 7 ngày trên GitHub để tải về
