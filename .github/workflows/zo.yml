@@ -1,58 +1,73 @@
-name: Build Android APK
+name: Build Android Debug APK
 
 on:
   push:
     branches:
-      - main # Hoặc master tùy thuộc vào nhánh chính của bạn
+      - main
+      - master
   pull_request:
     branches:
       - main
+      - master
+  workflow_dispatch:  # Cho phép chạy thủ công từ GitHub UI
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # Thiết lập biến môi trường toàn cục để tránh lỗi xung đột phiên bản Node
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
-      # Bước 1: Kiểm tra và tải mã nguồn về runner
+      # 1. Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Bước 2: Thiết lập môi trường Node.js (phù hợp với dự án React Native / Expo)
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # Duy trì bản ổn định cho Expo/React Native hiện tại
+          node-version: '20'
           cache: 'npm'
 
-      # Bước 3: Cài đặt JDK (Bắt buộc phải có để build Android bằng Gradle)
+      # 3. Setup Java JDK 17 (bắt buộc cho Gradle)
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Phiên bản tiêu chuẩn phù hợp với đa số bản Gradle mới
+          java-version: '17'
+          cache: 'gradle'
 
-      # Bước 4: Thiết lập Android SDK một cách chính xác
+      # 4. Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Bước 5: Cài đặt các thư viện phụ thuộc (Dependencies)
+      # 5. Cài đặt dependencies
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
-      # Bước 6: Build file APK ứng dụng
-      # Lưu ý: Lệnh dưới đây dành cho dự án React Native/Expo bare, thay đổi nếu bạn dùng EAS Build
-      - name: Build Android Release APK
+      # 6. Cấp quyền thực thi cho gradlew
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      # 7. Build Debug APK (chắc chắn)
+      - name: Build Android Debug APK
         run: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew clean
+          ./gradlew assembleDebug --stacktrace --info
 
-      # Bước 7: Xuất và lưu trữ file APK sau khi build xong lên GitHub
-      - name: Upload APK Artifact
+      # 8. Kiểm tra file APK đã được tạo
+      - name: Verify APK exists
+        run: |
+          ls -la android/app/build/outputs/apk/debug/
+          test -f android/app/build/outputs/apk/debug/app-debug.apk && echo "✅ APK Debug đã được tạo thành công"
+
+      # 9. Upload APK Debug lên Artifact
+      - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error
