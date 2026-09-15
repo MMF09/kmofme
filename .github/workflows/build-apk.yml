@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24  # Updated to Node 24 to fix the deprecation error
+          node-version: 24  # Sử dụng Node 24 để không bị lỗi cảnh báo hết hạn (deprecated)
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -31,14 +31,11 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install Node dependencies
-        # Uses 'npm i' instead of 'npm ci' if package-lock.json is missing
+        # Tự động kiểm tra file lock, nếu không có sẽ dùng 'npm install' thay vì 'npm ci' để tránh lỗi sập nguồn
         run: |
           if [ -f "package-lock.json" ]; then
             npm ci
@@ -66,7 +63,7 @@ jobs:
             APK_PATH=$(find android -name "*debug*.apk" | head -n 1)
           fi
           if [ -z "$APK_PATH" ]; then
-            echo "::error::No debug APK found!"
+            echo "::error::Không tìm thấy file debug APK sau khi build!"
             exit 1
           fi
           echo "APK found: $APK_PATH"
