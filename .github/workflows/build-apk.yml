@@ -1,4 +1,4 @@
-name: Build Android Debug APK
+name: Build Android Debug APK (React Native CLI)
 
 on:
   workflow_dispatch:
@@ -23,19 +23,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24  # Cập nhật lên Node 24 để sửa lỗi deprecation của GitHub
+          node-version: 24  # Phiên bản Node ổn định nhất hiện tại
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17  # Phù hợp với đa số các phiên bản Expo SDK hiện tại
+          java-version: 17  # Thay thành 11 nếu bạn dùng React Native phiên bản rất cũ (< 0.73)
+
+      # BẮT BUỘC: React Native CLI cần tự cấu hình Android SDK vì không có Expo lo phần này
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
 
       - name: Install Node dependencies
-        # Tự động phát hiện file lock để chọn lệnh cài đặt phù hợp, tránh crash quy trình
         run: |
           if [ -f "package-lock.json" ]; then
             npm ci
@@ -43,15 +46,11 @@ jobs:
             npm install
           fi
 
-      - name: Expo prebuild (generate android directory)
-        run: npx expo prebuild --platform android --no-install --non-interactive
-
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
       - name: Build Debug APK
         working-directory: android
-        # Thêm cờ --info để in ra đầy đủ chi tiết lỗi nếu dòng build Gradle bị sập
         run: ./gradlew assembleDebug --no-daemon --stacktrace --info
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4g -Dorg.gradle.daemon=false"
