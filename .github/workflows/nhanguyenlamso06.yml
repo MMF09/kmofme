@@ -18,9 +18,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # Sử dụng Node 22 LTS mới nhất để tương thích với môi trường Node 24 mặc định của runner
-          # Tự động cấu hình bộ nhớ đệm dựa trên việc quét tìm file lock thực tế trong dự án
-          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || hashFiles('yarn.lock') != '' && 'yarn' || hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
+          node-version: 22 # Sử dụng Node 22 LTS để đảm bảo tính ổn định
+          # Đã sửa lại cú pháp kiểm tra file lock để GitHub Actions nhận diện chính xác bộ nhớ đệm (cache)
+          cache: ${{ hashFiles('yarn.lock') != '' && 'yarn' || hashFiles('package-lock.json') != '' && 'npm' || hashFiles('pnpm-lock.yaml') != '' && 'pnpm' || '' }}
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -57,10 +57,8 @@ jobs:
         continue-on-error: true # Bỏ qua nếu cấu hình dự án của bạn tự động hóa phần đóng gói này qua Gradle
 
       - name: Build Debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        # Gộp các lệnh bằng dấu && và thêm dấu ./ trước gradlew để thực thi đúng trong thư mục android
+        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
