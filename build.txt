@@ -1,0 +1,22 @@
+npm install
+npx expo prebuild --platform android --clean
+npx expo export --platform android
+# Copy bundle vào assets (nếu cần)
+cd android
+./gradlew assembleDebug
+
+cd android && ./gradlew assembleRelease
+
+
+
+
+
+
+Cách A: Tạo file local.properties (Nhanh nhất)
+
+1. Truy cập vào thư mục Android trong dự án mới của bạn theo đường dẫn: C:\Users\Administrator\Desktop\kmofme-ui-fixed\android\
+2. Tạo một file văn bản mới (Text Document) và đặt tên chính xác là local.properties
+3. Mở file đó lên, dán dòng cấu hình sau vào và lưu lại:ini
+sdk.dir=C\:\\Users\\Administrator\\AppData\\Local\\Android\\Sdk
+Use code with caution.
+(Lưu ý: Giữ nguyên các dấu gạch chéo ngược kép \\ và dấu hai chấm có gạch chéo \: để Gradle hiểu đúng đường dẫn trên Windows).
